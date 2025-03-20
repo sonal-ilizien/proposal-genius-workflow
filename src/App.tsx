@@ -8,6 +8,9 @@ import Index from "./pages/Index";
 import ProposalDetails from "./pages/ProposalDetails";
 import NotFound from "./pages/NotFound";
 import { ProposalProvider } from "./context/ProposalContext";
+import AppLayout from "./components/AppLayout";
+import SchemesPage from "./pages/SchemesPage";
+import StatisticsPage from "./pages/StatisticsPage";
 
 const queryClient = new QueryClient();
 
@@ -19,8 +22,10 @@ const App = () => (
       <ProposalProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/proposals/:proposalId" element={<ProposalDetails />} />
+            <Route path="/" element={<AppLayout><Index /></AppLayout>} />
+            <Route path="/proposals/:proposalId" element={<AppLayout><ProposalDetails /></AppLayout>} />
+            <Route path="/schemes" element={<AppLayout><SchemesPage /></AppLayout>} />
+            <Route path="/statistics" element={<AppLayout><StatisticsPage /></AppLayout>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

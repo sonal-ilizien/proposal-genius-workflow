@@ -6,7 +6,7 @@ interface ProposalContextType {
   schemes: Scheme[];
   proposals: Proposal[];
   activeProposal: Proposal | null;
-  createProposal: (title: string, description: string, schemeId: string) => void;
+  createProposal: (title: string, description: string, schemeId: string) => Proposal | undefined;
   setActiveProposal: (proposalId: string | null) => void;
   advanceStage: (proposalId: string, comment: string, approved: boolean) => void;
   addComment: (proposalId: string, stageId: string, comment: string, approved: boolean) => void;
@@ -21,7 +21,7 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
 
   const createProposal = (title: string, description: string, schemeId: string) => {
     const scheme = schemes.find(s => s.id === schemeId);
-    if (!scheme) return;
+    if (!scheme) return undefined;
 
     const newProposal: Proposal = {
       id: `proposal-${Date.now()}`,
@@ -60,7 +60,7 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    setProposals(prev => prev.map(proposal => {
+    setProposals(prevProposals => prevProposals.map(proposal => {
       if (proposal.id !== proposalId) return proposal;
 
       const currentStageIndex = proposal.currentStageIndex;
@@ -72,7 +72,7 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
           if (idx === currentStageIndex) {
             return {
               ...stage,
-              status: 'completed',
+              status: 'completed' as const,
               completedAt: new Date(),
               comments: [
                 ...stage.comments,
@@ -94,7 +94,7 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
         if (idx === currentStageIndex) {
           return {
             ...stage,
-            status: 'completed',
+            status: 'completed' as const,
             completedAt: new Date(),
             comments: [
               ...stage.comments,
@@ -105,7 +105,7 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
         if (idx === nextStageIndex) {
           return {
             ...stage,
-            status: 'active',
+            status: 'active' as const,
             startedAt: new Date()
           };
         }
@@ -121,7 +121,7 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addComment = (proposalId: string, stageId: string, comment: string, approved: boolean) => {
-    setProposals(prev => prev.map(proposal => {
+    setProposals(prevProposals => prevProposals.map(proposal => {
       if (proposal.id !== proposalId) return proposal;
 
       // If stageId is empty, use the current active stage
