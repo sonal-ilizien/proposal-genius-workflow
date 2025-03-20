@@ -1,6 +1,6 @@
 
 import { Link, useLocation } from "react-router-dom";
-import { FileText, LayoutDashboard, Database, BarChart2, Settings } from "lucide-react";
+import { FileText, LayoutDashboard, Database, BarChart2, Settings, ClipboardList } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -47,6 +47,15 @@ const AppSidebar = () => {
                   <Link to="/">
                     <LayoutDashboard />
                     <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/proposals")}>
+                  <Link to="/proposals">
+                    <ClipboardList />
+                    <span>Proposal Master</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
