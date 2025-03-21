@@ -1,6 +1,7 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, User, Clipboard, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Clock, User, Clipboard, ChevronDown, ChevronUp, FastForward, MessageSquare } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Timeline from '@/components/Timeline';
 import ApprovalSheet from '@/components/ApprovalSheet';
@@ -8,11 +9,15 @@ import AIInsights from '@/components/AIInsights';
 import { useProposals } from '@/context/ProposalContext';
 import { getSchemeById } from '@/utils/schemeData';
 import { useEntranceAnimation } from '@/utils/animations';
+import { Button } from '@/components/ui/button';
+import StageSkipModal from '@/components/StageSkipModal';
+import DiscussionPanel from '@/components/DiscussionPanel';
 
 const ProposalDetails = () => {
   const { proposalId } = useParams<{ proposalId: string }>();
   const { proposals, activeProposal, setActiveProposal, advanceStage, addComment } = useProposals();
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
+  const [showSkipModal, setShowSkipModal] = useState(false);
   const navigate = useNavigate();
   const isVisible = useEntranceAnimation();
   
@@ -73,6 +78,8 @@ const ProposalDetails = () => {
   const handleAddComment = (comment: string, parentCommentId?: string) => {
     addComment(activeProposal.id, selectedStage.id, comment, false, parentCommentId);
   };
+
+  const canSkipStages = activeProposal.currentStageIndex < activeProposal.stages.length - 2;
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -113,8 +120,19 @@ const ProposalDetails = () => {
         </div>
         
         <div className="glass rounded-lg mb-8 overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
+          <div className="p-6 border-b border-gray-100 flex justify-between items-center">
             <h2 className="text-xl font-semibold">Workflow Timeline</h2>
+            {canSkipStages && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1"
+                onClick={() => setShowSkipModal(true)}
+              >
+                <FastForward className="h-4 w-4" />
+                Skip Stage
+              </Button>
+            )}
           </div>
           <div className="px-6 py-4 overflow-x-auto">
             <Timeline 
@@ -133,6 +151,12 @@ const ProposalDetails = () => {
               onReject={handleStageReject}
               onComment={handleAddComment}
               isActive={selectedStage.id === activeProposal.stages[activeProposal.currentStageIndex].id}
+            />
+            
+            <DiscussionPanel 
+              proposalId={activeProposal.id} 
+              stageId={selectedStage.id}
+              onAddComment={handleAddComment}
             />
             
             <div className="glass rounded-lg p-4 md:p-6">
@@ -192,6 +216,13 @@ const ProposalDetails = () => {
           </div>
         </div>
       </main>
+      
+      {showSkipModal && (
+        <StageSkipModal
+          proposalId={activeProposal.id}
+          onClose={() => setShowSkipModal(false)}
+        />
+      )}
     </div>
   );
 };
