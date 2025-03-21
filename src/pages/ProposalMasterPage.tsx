@@ -22,11 +22,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useEntranceAnimation } from '@/utils/animations';
 import SchemeSelector from '@/components/SchemeSelector';
+import { useToast } from '@/hooks/use-toast';
 
 const ProposalMasterPage = () => {
   const { proposals, schemes, createProposal, setActiveProposal } = useProposals();
   const isVisible = useEntranceAnimation();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState({ title: '', description: '', schemeId: '' });
 
@@ -47,17 +49,46 @@ const ProposalMasterPage = () => {
 
   const handleCreateProposal = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.description || !formData.schemeId) return;
     
-    const newProposal = createProposal(formData.title, formData.description, formData.schemeId);
-    setShowCreateModal(false);
-    setFormData({ title: '', description: '', schemeId: '' });
+    if (!formData.title || !formData.description || !formData.schemeId) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all fields to create a proposal",
+        variant: "destructive"
+      });
+      return;
+    }
     
-    if (newProposal) {
-      setActiveProposal(newProposal.id);
-      setTimeout(() => {
-        navigate(`/proposals/${newProposal.id}`);
-      }, 300);
+    try {
+      const newProposal = createProposal(formData.title, formData.description, formData.schemeId);
+      
+      if (newProposal) {
+        toast({
+          title: "Proposal Created",
+          description: `Successfully created proposal: ${formData.title}`,
+        });
+        
+        setShowCreateModal(false);
+        setFormData({ title: '', description: '', schemeId: '' });
+        
+        setActiveProposal(newProposal.id);
+        setTimeout(() => {
+          navigate(`/proposals/${newProposal.id}`);
+        }, 300);
+      } else {
+        toast({
+          title: "Error",
+          description: "Could not create proposal. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error creating proposal:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 

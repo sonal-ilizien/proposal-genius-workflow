@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock, User, Clipboard, ChevronDown, ChevronUp } from 'lucide-react';
@@ -29,7 +28,6 @@ const ProposalDetails = () => {
   
   useEffect(() => {
     if (activeProposal) {
-      // Set selected stage to current stage by default
       setSelectedStageId(activeProposal.stages[activeProposal.currentStageIndex].id);
     }
   }, [activeProposal]);
@@ -69,12 +67,11 @@ const ProposalDetails = () => {
   };
   
   const handleStageReject = (comment: string) => {
-    // For now, just add the comment without advancing
     addComment(activeProposal.id, selectedStage.id, comment, false);
   };
   
-  const handleAddComment = (comment: string) => {
-    addComment(activeProposal.id, selectedStage.id, comment, false);
+  const handleAddComment = (comment: string, parentCommentId?: string) => {
+    addComment(activeProposal.id, selectedStage.id, comment, false, parentCommentId);
   };
   
   return (

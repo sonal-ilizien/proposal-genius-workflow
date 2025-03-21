@@ -1,9 +1,10 @@
-
 export interface Comment {
   id: string;
   text: string;
   approved: boolean;
   createdAt: Date;
+  parentId: string | null;
+  replies?: string[]; // IDs of reply comments
 }
 
 export interface Stage {
