@@ -1,5 +1,7 @@
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Scheme, Stage, Proposal, schemeData } from '../utils/schemeData';
+import { Scheme, Stage, Proposal, schemeData, Comment } from '../utils/schemeData';
+import { toast } from '@/hooks/use-toast';
 
 interface ProposalContextType {
   schemes: Scheme[];
@@ -8,6 +10,7 @@ interface ProposalContextType {
   createProposal: (title: string, description: string, schemeId: string) => Proposal | undefined;
   setActiveProposal: (proposalId: string | null) => void;
   advanceStage: (proposalId: string, comment: string, approved: boolean) => void;
+  skipToStage: (proposalId: string, targetStageIndex: number, comment: string) => void;
   addComment: (proposalId: string, stageId: string, comment: string, approved: boolean, parentCommentId?: string) => void;
 }
 
@@ -20,7 +23,14 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
 
   const createProposal = (title: string, description: string, schemeId: string) => {
     const scheme = schemes.find(s => s.id === schemeId);
-    if (!scheme) return undefined;
+    if (!scheme) {
+      toast({
+        title: "Error",
+        description: "Invalid scheme selected",
+        variant: "destructive"
+      });
+      return undefined;
+    }
 
     const newProposal: Proposal = {
       id: `proposal-${Date.now()}`,
@@ -39,6 +49,11 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
     };
 
     setProposals(prevProposals => [...prevProposals, newProposal]);
+    toast({
+      title: "Success",
+      description: `Proposal "${title}" created successfully`,
+    });
+    
     return newProposal;
   };
 
@@ -65,20 +80,24 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
       const nextStageIndex = currentStageIndex + 1;
       
       if (nextStageIndex >= proposal.stages.length) {
-        const updatedStages = proposal.stages.map((stage, idx) => {
-          if (idx === currentStageIndex) {
-            return {
-              ...stage,
-              status: 'completed' as const,
-              completedAt: new Date(),
-              comments: [
-                ...stage.comments,
-                { id: `comment-${Date.now()}`, text: comment, approved, createdAt: new Date() }
-              ]
-            };
-          }
-          return stage;
-        });
+        // Final stage completion
+        const updatedStages = [...proposal.stages];
+        updatedStages[currentStageIndex] = {
+          ...updatedStages[currentStageIndex],
+          status: 'completed' as const,
+          completedAt: new Date(),
+          comments: [
+            ...updatedStages[currentStageIndex].comments,
+            { 
+              id: `comment-${Date.now()}`, 
+              text: comment, 
+              approved, 
+              createdAt: new Date(),
+              parentId: null,
+              replies: []
+            }
+          ]
+        };
 
         return {
           ...proposal,
@@ -86,27 +105,33 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
         };
       }
 
-      const updatedStages = proposal.stages.map((stage, idx) => {
-        if (idx === currentStageIndex) {
-          return {
-            ...stage,
-            status: 'completed' as const,
-            completedAt: new Date(),
-            comments: [
-              ...stage.comments,
-              { id: `comment-${Date.now()}`, text: comment, approved, createdAt: new Date() }
-            ]
-          };
-        }
-        if (idx === nextStageIndex) {
-          return {
-            ...stage,
-            status: 'active' as const,
-            startedAt: new Date()
-          };
-        }
-        return stage;
-      });
+      // Normal stage advancement
+      const updatedStages = [...proposal.stages];
+      
+      // Mark current stage as completed
+      updatedStages[currentStageIndex] = {
+        ...updatedStages[currentStageIndex],
+        status: 'completed' as const,
+        completedAt: new Date(),
+        comments: [
+          ...updatedStages[currentStageIndex].comments,
+          { 
+            id: `comment-${Date.now()}`, 
+            text: comment, 
+            approved, 
+            createdAt: new Date(),
+            parentId: null,
+            replies: []
+          }
+        ]
+      };
+      
+      // Mark next stage as active
+      updatedStages[nextStageIndex] = {
+        ...updatedStages[nextStageIndex],
+        status: 'active' as const,
+        startedAt: new Date()
+      };
 
       return {
         ...proposal,
@@ -114,6 +139,83 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
         stages: updatedStages
       };
     }));
+    
+    toast({
+      title: "Stage Advanced",
+      description: "The proposal has moved to the next stage",
+    });
+  };
+
+  const skipToStage = (proposalId: string, targetStageIndex: number, comment: string) => {
+    setProposals(prevProposals => prevProposals.map(proposal => {
+      if (proposal.id !== proposalId) return proposal;
+      
+      const currentStageIndex = proposal.currentStageIndex;
+      
+      // Don't allow skipping to previous stages or the current stage
+      if (targetStageIndex <= currentStageIndex || targetStageIndex >= proposal.stages.length) {
+        return proposal;
+      }
+      
+      const updatedStages = [...proposal.stages];
+      
+      // Mark current stage as completed
+      updatedStages[currentStageIndex] = {
+        ...updatedStages[currentStageIndex],
+        status: 'completed' as const,
+        completedAt: new Date(),
+        comments: [
+          ...updatedStages[currentStageIndex].comments,
+          { 
+            id: `comment-${Date.now()}`, 
+            text: `Skipped to stage: ${proposal.stages[targetStageIndex].name}. ${comment}`, 
+            approved: true, 
+            createdAt: new Date(),
+            parentId: null,
+            replies: []
+          }
+        ]
+      };
+      
+      // Mark intermediate stages as skipped/completed
+      for (let i = currentStageIndex + 1; i < targetStageIndex; i++) {
+        updatedStages[i] = {
+          ...updatedStages[i],
+          status: 'completed' as const,
+          startedAt: new Date(),
+          completedAt: new Date(),
+          comments: [
+            ...updatedStages[i].comments,
+            { 
+              id: `comment-${Date.now()}-${i}`, 
+              text: "Skipped", 
+              approved: true, 
+              createdAt: new Date(),
+              parentId: null,
+              replies: []
+            }
+          ]
+        };
+      }
+      
+      // Mark target stage as active
+      updatedStages[targetStageIndex] = {
+        ...updatedStages[targetStageIndex],
+        status: 'active' as const,
+        startedAt: new Date()
+      };
+      
+      return {
+        ...proposal,
+        currentStageIndex: targetStageIndex,
+        stages: updatedStages
+      };
+    }));
+    
+    toast({
+      title: "Stage Skipped",
+      description: "Successfully skipped to the selected stage",
+    });
   };
 
   const addComment = (proposalId: string, stageId: string, comment: string, approved: boolean, parentCommentId?: string) => {
@@ -121,51 +223,59 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
       if (proposal.id !== proposalId) return proposal;
 
       const targetStageId = stageId || proposal.stages[proposal.currentStageIndex].id;
-
-      const updatedStages = proposal.stages.map(stage => {
-        if (stage.id === targetStageId) {
-          const newComment = { 
-            id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, 
-            text: comment, 
-            approved, 
-            createdAt: new Date(),
-            parentId: parentCommentId || null,
-            replies: []
+      const updatedStages = [...proposal.stages];
+      
+      const stageIndex = updatedStages.findIndex(s => s.id === targetStageId);
+      if (stageIndex === -1) return proposal;
+      
+      const newComment: Comment = { 
+        id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, 
+        text: comment, 
+        approved, 
+        createdAt: new Date(),
+        parentId: parentCommentId || null,
+        replies: []
+      };
+      
+      if (parentCommentId) {
+        const updatedComments = [...updatedStages[stageIndex].comments];
+        const parentIndex = updatedComments.findIndex(c => c.id === parentCommentId);
+        
+        if (parentIndex !== -1) {
+          updatedComments[parentIndex] = {
+            ...updatedComments[parentIndex],
+            replies: [...(updatedComments[parentIndex].replies || []), newComment.id]
           };
-
-          if (parentCommentId) {
-            const updatedComments = stage.comments.map(existingComment => {
-              if (existingComment.id === parentCommentId) {
-                return {
-                  ...existingComment,
-                  replies: [...(existingComment.replies || []), newComment.id]
-                };
-              }
-              return existingComment;
-            });
-            
-            return {
-              ...stage,
-              comments: [...updatedComments, newComment]
-            };
-          }
           
-          return {
-            ...stage,
-            comments: [
-              ...stage.comments,
-              newComment
-            ]
+          updatedStages[stageIndex] = {
+            ...updatedStages[stageIndex],
+            comments: [...updatedComments, newComment]
           };
         }
-        return stage;
-      });
-
+      } else {
+        updatedStages[stageIndex] = {
+          ...updatedStages[stageIndex],
+          comments: [...updatedStages[stageIndex].comments, newComment]
+        };
+      }
+      
       return {
         ...proposal,
         stages: updatedStages
       };
     }));
+    
+    if (!parentCommentId) {
+      toast({
+        title: "Comment Added",
+        description: "Your comment has been added to the discussion",
+      });
+    } else {
+      toast({
+        title: "Reply Added",
+        description: "Your reply has been added to the discussion",
+      });
+    }
   };
 
   const value = {
@@ -175,6 +285,7 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
     createProposal,
     setActiveProposal,
     advanceStage,
+    skipToStage,
     addComment
   };
 

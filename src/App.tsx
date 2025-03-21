@@ -12,6 +12,7 @@ import AppLayout from "./components/AppLayout";
 import SchemesPage from "./pages/SchemesPage";
 import StatisticsPage from "./pages/StatisticsPage";
 import ProposalMasterPage from "./pages/ProposalMasterPage";
+import ModernDashboard from "./pages/ModernDashboard";
 
 const queryClient = new QueryClient();
 
@@ -23,7 +24,8 @@ const App = () => (
       <ProposalProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<AppLayout><Index /></AppLayout>} />
+            <Route path="/" element={<AppLayout><ModernDashboard /></AppLayout>} />
+            <Route path="/classic-dashboard" element={<AppLayout><Index /></AppLayout>} />
             <Route path="/proposals" element={<AppLayout><ProposalMasterPage /></AppLayout>} />
             <Route path="/proposals/:proposalId" element={<AppLayout><ProposalDetails /></AppLayout>} />
             <Route path="/schemes" element={<AppLayout><SchemesPage /></AppLayout>} />

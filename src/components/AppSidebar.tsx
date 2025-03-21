@@ -1,6 +1,16 @@
 
 import { Link, useLocation } from "react-router-dom";
-import { FileText, LayoutDashboard, Database, BarChart2, Settings, ClipboardList } from "lucide-react";
+import { 
+  FileText, 
+  LayoutDashboard, 
+  Database, 
+  BarChart2, 
+  Settings, 
+  ClipboardList,
+  MessageSquare,
+  Home,
+  Activity 
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -14,10 +24,13 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useProposals } from "@/context/ProposalContext";
+import { useState } from "react";
+import { Button } from "./ui/button";
 
 const AppSidebar = () => {
   const location = useLocation();
   const { schemes } = useProposals();
+  const [schemeMenuExpanded, setSchemeMenuExpanded] = useState(true);
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -46,7 +59,16 @@ const AppSidebar = () => {
                 <SidebarMenuButton asChild isActive={isActive("/")}>
                   <Link to="/">
                     <LayoutDashboard />
-                    <span>Dashboard</span>
+                    <span>Modern Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/classic-dashboard")}>
+                  <Link to="/classic-dashboard">
+                    <Home />
+                    <span>Classic Dashboard</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -82,21 +104,38 @@ const AppSidebar = () => {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Indigenisation Schemes</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {schemes.map((scheme) => (
-                <SidebarMenuItem key={scheme.id}>
-                  <SidebarMenuButton asChild>
-                    <Link to={`/schemes/${scheme.id}`}>
-                      <div className={`w-2 h-2 rounded-full bg-${scheme.color}-500`}></div>
-                      <span>{scheme.name}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
+          <div className="flex items-center justify-between px-3 py-2">
+            <SidebarGroupLabel className="mb-0">Indigenisation Schemes</SidebarGroupLabel>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6 w-6 p-0" 
+              onClick={() => setSchemeMenuExpanded(!schemeMenuExpanded)}
+            >
+              {schemeMenuExpanded ? (
+                <Activity className="h-4 w-4" />
+              ) : (
+                <Activity className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          
+          {schemeMenuExpanded && (
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {schemes.map((scheme) => (
+                  <SidebarMenuItem key={scheme.id}>
+                    <SidebarMenuButton asChild isActive={location.pathname === `/schemes/${scheme.id}`}>
+                      <Link to={`/schemes/${scheme.id}`}>
+                        <div className={`w-2 h-2 rounded-full bg-${scheme.color}-500`}></div>
+                        <span>{scheme.name}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          )}
         </SidebarGroup>
       </SidebarContent>
 
